@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Semantic Similarity Analyzer</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    textarea { width: 90%; height: 80px; margin: 10px 0; }
+    table, td, th { border: 1px solid black; border-collapse: collapse; padding: 8px; }
+    .high-similarity { background-color: #ffcccc; }
+  </style>
+</head>
+<body>
+  <h1>Plagiarism Detector - Semantic Similarity Analyzer</h1>
+
+  <div>
+    <label for="model">Choose Embedding Model:</label>
+    <select id="model">
+      <option value="st">Sentence Transformers</option>
+      <option value="tfidf">TF-IDF (Word-Level)</option>
+    </select>
+  </div>
+
+  <div id="inputs">
+    <textarea placeholder="Enter text 1"></textarea>
+    <textarea placeholder="Enter text 2"></textarea>
+  </div>
+
+  <button onclick="addBox()">Add More Text</button>
+  <button onclick="analyze()">Analyze Similarity</button>
+
+  <h2>Similarity Matrix</h2>
+  <div id="matrix"></div>
+
+  <script>
+    function addBox() {
+      const div = document.getElementById('inputs');
+      const ta = document.createElement('textarea');
+      ta.placeholder = "Enter more text";
+      div.appendChild(ta);
+    }
+
+    async function analyze() {
+      const inputs = Array.from(document.querySelectorAll('#inputs textarea'))
+                          .map(ta => ta.value);
+      const res = await fetch('/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          texts: inputs,
+          mode: document.getElementById('model').value
+        })
+      });
+      const data = await res.json();
+      displayMatrix(data.similarity_matrix);
+    }
+
+    function displayMatrix(matrix) {
+      const div = document.getElementById('matrix');
+      let html = '<table><tr><th></th>';
+      for (let i = 0; i < matrix.length; i++) {
+        html += `<th>Text ${i+1}</th>`;
+      }
+      html += '</tr>';
+
+      for (let i = 0; i < matrix.length; i++) {
+        html += `<tr><th>Text ${i+1}</th>`;
+        for (let j = 0; j < matrix[i].length; j++) {
+          const val = matrix[i][j];
+          const cls = (i !== j && val > 80) ? 'high-similarity' : '';
+          html += `<td class="${cls}">${val}%</td>`;
+        }
+        html += '</tr>';
+      }
+      html += '</table>';
+      div.innerHTML = html;
+    }
+  </script>
+</body>
+</html>
